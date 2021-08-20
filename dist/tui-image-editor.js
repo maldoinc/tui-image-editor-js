@@ -23881,7 +23881,7 @@ var Resize = function (_Submenu) {
 
     _this.status = 'active';
 
-    _this._lockState = false;
+    _this._lockState = true;
 
     /**
      * Original dimensions
