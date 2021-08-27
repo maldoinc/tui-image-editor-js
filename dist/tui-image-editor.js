@@ -26569,13 +26569,14 @@ var Range = function () {
     this._useDecimal = options.useDecimal;
     this._absMax = this._min * -1 + this._max;
     this.realTimeEvent = options.realTimeEvent || false;
+    this._userInputTimer = null;
 
     this.eventHandler = {
       startChangingSlide: this._startChangingSlide.bind(this),
       stopChangingSlide: this._stopChangingSlide.bind(this),
       changeSlide: this._changeSlide.bind(this),
       changeSlideFinally: this._changeSlideFinally.bind(this),
-      changeInput: this._changeValueWithInput.bind(this, false),
+      changeInput: this._changeInput.bind(this),
       changeInputFinally: this._changeValueWithInput.bind(this, true),
       changeInputWithArrow: this._changeValueWithInputKeyEvent.bind(this)
     };
@@ -26672,7 +26673,7 @@ var Range = function () {
     value: function _addInputEvent() {
       if (this.rangeInputElement) {
         this.rangeInputElement.addEventListener('keydown', this.eventHandler.changeInputWithArrow);
-        this.rangeInputElement.addEventListener('keyup', this.eventHandler.changeInput);
+        this.rangeInputElement.addEventListener('keydown', this.eventHandler.changeInput);
         this.rangeInputElement.addEventListener('blur', this.eventHandler.changeInputFinally);
       }
     }
@@ -26687,7 +26688,7 @@ var Range = function () {
     value: function _removeInputEvent() {
       if (this.rangeInputElement) {
         this.rangeInputElement.removeEventListener('keydown', this.eventHandler.changeInputWithArrow);
-        this.rangeInputElement.removeEventListener('keyup', this.eventHandler.changeInput);
+        this.rangeInputElement.removeEventListener('keydown', this.eventHandler.changeInput);
         this.rangeInputElement.removeEventListener('blur', this.eventHandler.changeInputFinally);
       }
     }
@@ -26743,6 +26744,33 @@ var Range = function () {
 
       return value;
     }
+  }, {
+    key: '_changeInput',
+    value: function _changeInput(e) {
+      var _this2 = this;
+
+      clearTimeout(this._userInputTimer);
+
+      var keyCode = e.key.charCodeAt(0);
+      if (keyCode < 48 || keyCode > 57) {
+        e.preventDefault();
+
+        return;
+      }
+
+      this._userInputTimer = setTimeout(function () {
+        _this2._inputSetValue(e.target.value);
+      }, 350);
+    }
+  }, {
+    key: '_inputSetValue',
+    value: function _inputSetValue(stringValue) {
+      var value = this._useDecimal ? Number(stringValue) : (0, _util.toInteger)(stringValue);
+      value = (0, _util.clamp)(value, this._min, this.max);
+
+      this.value = value;
+      this.fire('change', value, true);
+    }
 
     /**
      * change angle event
@@ -26767,11 +26795,7 @@ var Range = function () {
       target.value = stringValue;
 
       if (!waitForChange) {
-        var value = this._useDecimal ? Number(stringValue) : (0, _util.toInteger)(stringValue);
-        value = (0, _util.clamp)(value, this._min, this.max);
-
-        this.value = value;
-        this.fire('change', value, isLast);
+        this._inputSetValue(stringValue);
       }
     }
 
